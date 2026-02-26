@@ -3,6 +3,7 @@ builder = "nixpacks"
 watchPatterns = ["backend/**", "packages/**"]
 
 [build.nixpacks]
+providers = ["python"]
 aptPkgs = []
 installCmd = "cd backend && pip install -r requirements.txt"
 buildCmd = "echo 'build complete'"
