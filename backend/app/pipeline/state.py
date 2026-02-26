@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Any
 
 
 class ParsedConstraints(TypedDict, total=False):
@@ -27,6 +27,9 @@ class SearchState(TypedDict, total=False):
     refine_sort: Optional[str]
     refine_category: Optional[str]
 
+    # Privacy / personalization
+    personalized: bool
+
     # Pipeline stages
     parsed_constraints: ParsedConstraints
     route: str  # "simple" | "complex"
@@ -40,3 +43,8 @@ class SearchState(TypedDict, total=False):
     monthly_impact: list[dict]
     disclaimers: list[str]
     error: Optional[str]
+
+    # Agentic trace (dev only)
+    debug_trace: list[dict]
+    applied_constraints: dict
+    why_this_recommendation: str

@@ -20,6 +20,12 @@ class Settings:
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     EMBEDDING_DIM: int = 384
 
+    # Performance budgets
+    MAX_RERANK_CANDIDATES: int = int(os.getenv("MAX_RERANK_CANDIDATES", "30"))
+    RERANK_TIMEOUT_MS: int = int(os.getenv("RERANK_TIMEOUT_MS", "500"))
+    RETRIEVE_TIMEOUT_MS: int = int(os.getenv("RETRIEVE_TIMEOUT_MS", "200"))
+    TOTAL_BUDGET_MS: int = int(os.getenv("TOTAL_BUDGET_MS", "1000"))
+
 
 @lru_cache()
 def get_settings() -> Settings:

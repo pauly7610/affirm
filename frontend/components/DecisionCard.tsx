@@ -2,15 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { DecisionItem } from '../types';
 import { ConfidenceMeter } from './ConfidenceMeter';
+import { colors, radii, shadows } from '../lib/theme';
 
 interface DecisionCardProps {
   item: DecisionItem;
   isRecommended?: boolean;
+  whyRecommended?: string;
   onPress?: () => void;
   onReview?: () => void;
 }
 
-export function DecisionCard({ item, isRecommended, onPress, onReview }: DecisionCardProps) {
+export function DecisionCard({ item, isRecommended, whyRecommended, onPress, onReview }: DecisionCardProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -22,13 +24,14 @@ export function DecisionCard({ item, isRecommended, onPress, onReview }: Decisio
     >
       {isRecommended && (
         <View style={styles.badge}>
+          <View style={styles.badgeDot} />
           <Text style={styles.badgeText}>Recommended</Text>
         </View>
       )}
 
       <View style={styles.header}>
-        <View style={styles.merchantIcon}>
-          <Text style={styles.merchantInitial}>
+        <View style={[styles.merchantIcon, isRecommended && styles.merchantIconTinted]}>
+          <Text style={[styles.merchantInitial, isRecommended && styles.merchantInitialTinted]}>
             {item.merchantName.charAt(0)}
           </Text>
         </View>
@@ -65,8 +68,15 @@ export function DecisionCard({ item, isRecommended, onPress, onReview }: Decisio
         </View>
       </View>
 
-      <Pressable style={styles.cta} onPress={onReview}>
-        <Text style={styles.ctaText}>Review plan</Text>
+      {isRecommended && whyRecommended ? (
+        <Text style={styles.whyRecommended} numberOfLines={1}>{whyRecommended}</Text>
+      ) : null}
+
+      <Pressable
+        style={[styles.cta, !isRecommended && styles.ctaOutline]}
+        onPress={onReview}
+      >
+        <Text style={[styles.ctaText, !isRecommended && styles.ctaTextOutline]}>Review plan</Text>
       </Pressable>
 
       <Text style={styles.disclosure}>{item.disclosure}</Text>
@@ -76,39 +86,45 @@ export function DecisionCard({ item, isRecommended, onPress, onReview }: Decisio
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
     padding: 20,
     marginHorizontal: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.soft,
   },
   recommended: {
-    borderWidth: 1.5,
-    borderColor: '#3B6BF5',
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    ...shadows.soft,
   },
   pressed: {
     transform: [{ scale: 0.98 }],
-    shadowOpacity: 0.1,
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E8EEFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radii.badge,
     marginBottom: 12,
+    gap: 6,
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#3B6BF5',
+    fontWeight: '500',
+    color: colors.primary,
+    letterSpacing: 0.2,
   },
   header: {
     flexDirection: 'row',
@@ -119,28 +135,34 @@ const styles = StyleSheet.create({
   merchantIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radii.merchantIcon,
+    backgroundColor: colors.merchantBg,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  merchantIconTinted: {
+    backgroundColor: colors.primaryLight,
   },
   merchantInitial: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.textSecondary,
+  },
+  merchantInitialTinted: {
+    color: colors.primary,
   },
   headerText: {
     flex: 1,
   },
   merchantName: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1D23',
+    color: colors.textPrimary,
     marginTop: 1,
   },
   priceRow: {
@@ -152,13 +174,13 @@ const styles = StyleSheet.create({
   monthlyPayment: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#1A1D23',
+    color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
     lineHeight: 40,
   },
   monthlyLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: -2,
   },
   priceDetails: {
@@ -167,7 +189,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textMeta,
     fontVariant: ['tabular-nums'],
   },
   footer: {
@@ -181,24 +203,39 @@ const styles = StyleSheet.create({
   reason: {
     flex: 1,
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textSecondary,
     lineHeight: 16,
   },
+  whyRecommended: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
   cta: {
-    backgroundColor: '#3B6BF5',
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radii.cta,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 8,
   },
+  ctaOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.borderOutline,
+  },
   ctaText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.surface,
+  },
+  ctaTextOutline: {
+    color: colors.textSecondary,
   },
   disclosure: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     textAlign: 'center',
   },
 });

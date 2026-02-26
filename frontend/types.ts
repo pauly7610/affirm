@@ -29,12 +29,19 @@ export interface SearchRequest {
   query: string;
   userId?: string;
   sessionId?: string;
+  personalized?: boolean;
   refine?: {
     onlyZeroApr?: boolean;
     maxMonthly?: number;
     sort?: "lowest_monthly" | "lowest_total" | "shortest_term";
     category?: string;
   };
+}
+
+export interface TraceStep {
+  step: string;
+  ms: number;
+  notes: string;
 }
 
 export interface SearchResponse {
@@ -44,6 +51,9 @@ export interface SearchResponse {
   refineChips: RefineChip[];
   monthlyImpact: MonthlyImpactBar[];
   disclaimers: string[];
+  appliedConstraints: Record<string, string | boolean>;
+  whyThisRecommendation: string;
+  debugTrace?: TraceStep[];
 }
 
 export interface SearchFeedback {
@@ -51,6 +61,27 @@ export interface SearchFeedback {
   query: string;
   rating: "up" | "down";
   reason?: string;
+}
+
+export interface ScorecardQueryResult {
+  id: string;
+  query: string;
+  passed: boolean;
+  constraint_ok: boolean;
+  latency_ms: number;
+  result_count: number;
+  steps: { step: string; ms: number; notes: string }[];
+}
+
+export interface ScorecardResponse {
+  total_queries: number;
+  passed: number;
+  failed: number;
+  constraint_adherence_pct: number;
+  avg_latency_ms: number;
+  p95_latency_ms: number;
+  step_latencies: Record<string, number>;
+  queries: ScorecardQueryResult[];
 }
 
 export interface SuggestionsResponse {

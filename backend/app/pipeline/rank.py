@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from app.pipeline.state import SearchState
 
@@ -13,6 +14,7 @@ CONFIDENCE_SCORES = {"high": 1.0, "med": 0.6, "low": 0.3}
 
 def rank_node(state: SearchState) -> dict:
     """Score and rank reranked candidates by affordability, APR, confidence, and rerank score."""
+    t0 = time.perf_counter()
     request_id = state.get("request_id", "unknown")
     reranked = state.get("reranked", [])
     constraints = state.get("parsed_constraints", {})
@@ -47,7 +49,19 @@ def rank_node(state: SearchState) -> dict:
             # Default: balanced
             score = affordability * 0.3 + apr_score * 0.2 + confidence * 0.2 + rerank * 0.3
 
-        o["_rank_score"] = score
+        # Penalty for items that violate user's explicit constraints (from relaxation padding)
+        # Heavy penalty ensures strict-matching items always rank above violators
+        penalty = 0.0
+        if constraints.get("max_price") is not None and o["totalPrice"] > constraints["max_price"]:
+            penalty += 0.6
+        if constraints.get("max_monthly") is not None and o["monthlyPayment"] > constraints["max_monthly"]:
+            penalty += 0.6
+        if constraints.get("only_zero_apr") and o["apr"] != 0:
+            penalty += 0.5
+        if constraints.get("category") and o.get("category") != constraints["category"]:
+            penalty += 0.5
+
+        o["_rank_score"] = max(score - penalty, 0.0)
 
     ranked = sorted(reranked, key=lambda x: x.get("_rank_score", 0), reverse=True)
 
@@ -59,4 +73,9 @@ def rank_node(state: SearchState) -> dict:
         "top": ranked[0]["productName"] if ranked else "none",
     })
 
-    return {"ranked": ranked}
+    elapsed = round((time.perf_counter() - t0) * 1000, 1)
+    trace = list(state.get("debug_trace", []))
+    mode = sort_mode or "balanced"
+    top_name = ranked[0]["productName"] if ranked else "none"
+    trace.append({"step": "rank", "ms": elapsed, "notes": f"mode={mode}, top={top_name}, scored {len(ranked)} items"})
+    return {"ranked": ranked, "debug_trace": trace}

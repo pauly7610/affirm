@@ -55,6 +55,7 @@ class SearchRequest(BaseModel):
     user_id: Optional[str] = Field("demo-user", alias="userId")
     session_id: Optional[str] = Field(None, alias="sessionId")
     refine: Optional[RefineOptions] = None
+    personalized: bool = True
 
     model_config = {"populate_by_name": True}
 

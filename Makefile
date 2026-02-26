@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-web db seed test lint
+.PHONY: dev dev-api dev-web db seed test lint eval
 
 # Start everything (Postgres + API + Web)
 dev: db dev-api dev-web
@@ -26,6 +26,10 @@ test:
 # Typecheck frontend
 lint:
 	cd frontend && npx tsc --noEmit
+
+# Run search quality evals
+eval:
+	cd backend && python -m evals.run_eval
 
 # Quick start: no Docker, in-memory mode
 dev-mock:

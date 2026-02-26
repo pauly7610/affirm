@@ -1,111 +1,76 @@
-"""Pydantic request/response schemas for API endpoints."""
+"""Pydantic request/response schemas for API endpoints.
+
+Source of truth: packages/shared/models.py (core domain models).
+This module re-exports shared models and adds backend-only schemas.
+"""
 
 from __future__ import annotations
 
+import sys
+import os
 from typing import Optional
 from pydantic import BaseModel, Field
 
+# Ensure packages/shared is importable
+_packages_dir = os.path.join(os.path.dirname(__file__), "..", "..", "packages")
+if _packages_dir not in sys.path:
+    sys.path.insert(0, os.path.abspath(_packages_dir))
 
-class RefineOptions(BaseModel):
-    onlyZeroApr: Optional[bool] = None
-    maxMonthly: Optional[float] = None
-    sort: Optional[str] = None
-    category: Optional[str] = None
+from shared.models import (
+    DecisionItem,
+    RefineChip,
+    MonthlyImpactBar,
+    RefineOptions as SharedRefineOptions,
+    SearchRequest as SharedSearchRequest,
+    SearchResponse as SharedSearchResponse,
+    SearchFeedback,
+    SuggestionsResponse,
+    ActivePlan,
+    Insight,
+    EligibilityPreview,
+    UserProfile,
+    ProfileSummary,
+)
+
+# ── Re-export shared models under API-friendly names ──
+# These aliases keep existing imports working across the backend.
+
+RefineOptions = SharedRefineOptions
+SearchQueryRequest = SharedSearchRequest
+DecisionItemResponse = DecisionItem
+RefineChipResponse = RefineChip
+MonthlyImpactResponse = MonthlyImpactBar
+FeedbackRequest = SearchFeedback
+ActivePlanResponse = ActivePlan
+InsightResponse = Insight
+EligibilityResponse = EligibilityPreview
+UserProfileResponse = UserProfile
+ProfileSummaryResponse = ProfileSummary
 
 
-class SearchQueryRequest(BaseModel):
-    query: str
-    userId: str = "demo-user"
-    sessionId: Optional[str] = None
-    refine: Optional[RefineOptions] = None
+# ── Agentic trace models (backend-only) ──
 
-
-class DecisionItemResponse(BaseModel):
-    id: str
-    merchantName: str
-    productName: str
-    category: str
-    imageUrl: Optional[str] = None
-    totalPrice: float
-    termMonths: int
-    apr: float
-    monthlyPayment: float
-    eligibilityConfidence: str
-    reason: str
-    disclosure: str
-
-
-class RefineChipResponse(BaseModel):
-    key: str
-    label: str
-
-
-class MonthlyImpactResponse(BaseModel):
-    label: str
-    value: float
+class TraceStep(BaseModel):
+    step: str
+    ms: float
+    notes: str
 
 
 class SearchQueryResponse(BaseModel):
+    """Extended search response with agentic trace fields."""
     query: str
-    aiSummary: str
+    aiSummary: str = Field(alias="aiSummary")
     results: list[DecisionItemResponse]
-    refineChips: list[RefineChipResponse]
-    monthlyImpact: list[MonthlyImpactResponse]
+    refineChips: list[RefineChipResponse] = Field(alias="refineChips")
+    monthlyImpact: list[MonthlyImpactResponse] = Field(alias="monthlyImpact")
     disclaimers: list[str]
+    # Agentic fields
+    appliedConstraints: dict = Field(default_factory=dict, alias="appliedConstraints")
+    whyThisRecommendation: str = Field(default="", alias="whyThisRecommendation")
+    debugTrace: Optional[list[TraceStep]] = Field(default=None, alias="debugTrace")
 
-
-class FeedbackRequest(BaseModel):
-    itemId: str
-    query: str
-    rating: str  # "up" | "down"
-    reason: Optional[str] = None
+    model_config = {"populate_by_name": True}
 
 
 class FeedbackResponse(BaseModel):
     status: str = "ok"
-
-
-class SuggestionsResponse(BaseModel):
-    prompts: list[str]
-    trending: list[str]
-
-
-class ActivePlanResponse(BaseModel):
-    id: str
-    merchantName: str
-    productName: str
-    remainingBalance: float
-    monthlyPayment: float
-    nextPaymentDate: str
-    totalPaid: float
-    totalAmount: float
-    termMonths: int
-    apr: float
-
-
-class InsightResponse(BaseModel):
-    id: str
-    text: str
-    type: str
-    sparklineData: Optional[list[float]] = None
-
-
-class EligibilityResponse(BaseModel):
-    spendingPower: float
-    explanation: str
-    lastRefreshed: str
-
-
-class UserProfileResponse(BaseModel):
-    name: str
-    spendingPower: float
-    activePlansCount: int
-    paymentStatus: str
-    accountHealth: str
-
-
-class ProfileSummaryResponse(BaseModel):
-    user: UserProfileResponse
-    eligibility: EligibilityResponse
-    plans: list[ActivePlanResponse]
-    insights: list[InsightResponse]

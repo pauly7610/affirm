@@ -15,6 +15,7 @@ from app.middleware import RequestIdMiddleware
 from app.routes.health import router as health_router
 from app.routes.search import router as search_router
 from app.routes.profile import router as profile_router
+from app.routes.quality import router as quality_router
 from app.store import get_store
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -46,6 +47,7 @@ app.add_middleware(RequestIdMiddleware)
 app.include_router(health_router)
 app.include_router(search_router)
 app.include_router(profile_router)
+app.include_router(quality_router)
 
 # Serve Expo web build as static files (if present)
 if STATIC_DIR.is_dir():

@@ -4,25 +4,27 @@ from __future__ import annotations
 
 import re
 import logging
+import time
 
 from app.pipeline.state import SearchState, ParsedConstraints
 
 logger = logging.getLogger(__name__)
 
 CATEGORY_KEYWORDS = {
-    "electronics": ["laptop", "phone", "tablet", "headphone", "tv", "computer", "kindle", "ipad", "macbook", "samsung", "sony", "dell", "asus", "oled"],
+    "electronics": ["electronics", "laptop", "phone", "tablet", "headphone", "tv", "computer", "kindle", "ipad", "macbook", "samsung", "sony", "dell", "asus", "oled"],
     "travel": ["trip", "travel", "vacation", "flight", "hotel", "beach", "ski", "resort", "cancun", "miami", "nyc", "costa rica", "denver"],
     "sneakers": ["sneaker", "shoe", "jordan", "nike", "adidas", "new balance", "air max", "ultraboost"],
     "home": ["sofa", "couch", "furniture", "mattress", "desk", "shelf", "table", "vacuum", "home upgrade"],
     "fitness": ["fitness", "gym", "peloton", "bike", "garmin", "watch", "workout"],
     "gaming": ["gaming", "ps5", "playstation", "xbox", "steam deck", "razer", "game"],
     "fashion": ["fashion", "parka", "coat", "jacket", "designer"],
-    "appliances": ["fridge", "washer", "dryer", "appliance", "coffee", "breville"],
+    "appliances": ["fridge", "washer", "dryer", "appliance", "appliances", "coffee", "coffee machine", "breville"],
 }
 
 
 def intent_node(state: SearchState) -> dict:
     """Parse query into structured constraints."""
+    t0 = time.perf_counter()
     request_id = state.get("request_id", "unknown")
     query = state.get("sanitized_query", "")
     logger.info("intent.start", extra={"request_id": request_id})
@@ -78,4 +80,22 @@ def intent_node(state: SearchState) -> dict:
     constraints["raw_keywords"] = [t for t in tokens if t not in stopwords and len(t) > 2]
 
     logger.info("intent.done", extra={"request_id": request_id, "constraints": str(constraints)})
-    return {"parsed_constraints": constraints}
+
+    # Build human-readable applied constraints
+    applied: dict = {}
+    if constraints.get("max_price") is not None:
+        applied["budget"] = f"${constraints['max_price']:.0f}"
+    if constraints.get("max_monthly") is not None:
+        applied["maxMonthly"] = f"${constraints['max_monthly']:.0f}/mo"
+    if constraints.get("only_zero_apr"):
+        applied["zeroApr"] = True
+    if constraints.get("category"):
+        applied["category"] = constraints["category"]
+    if constraints.get("sort"):
+        applied["sort"] = constraints["sort"]
+
+    elapsed = round((time.perf_counter() - t0) * 1000, 1)
+    trace = list(state.get("debug_trace", []))
+    notes = ", ".join(f"{k}={v}" for k, v in applied.items()) or "no constraints"
+    trace.append({"step": "intent", "ms": elapsed, "notes": f"extracted: {notes}"})
+    return {"parsed_constraints": constraints, "applied_constraints": applied, "debug_trace": trace}

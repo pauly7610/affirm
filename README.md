@@ -123,14 +123,20 @@ Extract structured constraints from natural language:
 ### 3. Router
 Classify query complexity (simple vs. complex based on constraint count). Complex queries could trigger multi-step retrieval in production.
 
-### 4. Retrieve
-- **Vector search**: cosine similarity on query embedding vs. 34 offer embeddings (384-dim)
+### 4. Retrieve (Hybrid)
+- **Vector search**: cosine similarity on query embedding vs. offer embeddings (384-dim)
+- **BM25 lexical search**: in-memory BM25 index over merchant/product/category text
+- **Union + dedup**: vector results first, then BM25-only additions (capped at 50)
 - **SQL-like filters**: apply parsed constraints (category, price, monthly, APR)
-- **Relaxation**: if filters are too aggressive (< 3 results), pad with vector-only results
+- **Relaxation**: if < 3 results after filtering, pad from vector pool
+- **Circuit breakers**: embedder fail → BM25-only; both fail → unfiltered store offers
 
 ### 5. Rerank (BGE)
 - **Real mode** (`RERANKER_MODEL=BAAI/bge-reranker-base`): CrossEncoder scoring on query-passage pairs
-- **Mock mode** (`RERANKER_MODEL=none`): keyword overlap + similarity score
+- **Mock mode** (`RERANKER_MODEL=none`): normalized keyword overlap + similarity score
+- **Top-K cap**: only scores first 30 candidates; tail keeps original order
+- **Category boost**: clamped to 0.3 max to prevent overpowering model score
+- **Token normalization**: strips punctuation/numerics for cleaner overlap
 
 ### 6. Rank (Affordability)
 Deterministic weighted scorer:
@@ -138,6 +144,8 @@ Deterministic weighted scorer:
 score = w1 * affordability + w2 * apr_score + w3 * confidence + w4 * rerank_score
 ```
 Weights shift based on refine toggles (e.g., "Lower monthly" → affordability weight 0.5).
+
+**Constraint-violation penalty**: relaxation-padded items that violate the user's explicit constraints (price, monthly, APR, category) receive a heavy penalty (0.5–0.6) so strict matches always rank above violators.
 
 ### 7. Summarize
 Template-based output:
@@ -189,7 +197,7 @@ Refine chips re-run the pipeline with updated constraints:
 ## Tests
 
 ```bash
-# Backend
+# Backend unit + integration tests (27 tests)
 cd backend
 python -m pytest tests/ -v
 
@@ -197,3 +205,67 @@ python -m pytest tests/ -v
 cd frontend
 npx tsc --noEmit
 ```
+
+## Search Quality Evals
+
+A standalone evaluation harness that runs 15 queries against the pipeline and checks constraint adherence, result relevance, and explanation quality.
+
+```bash
+make eval
+# or: cd backend && python -m evals.run_eval
+```
+
+**What it checks per query:**
+- **Constraint parsing** — was `max_price`, `category`, `only_zero_apr` detected correctly?
+- **Result relevance** — are top-K results in the expected category? Do they respect price/monthly/APR caps?
+- **Merchant/product presence** — does "peloton bike" surface Peloton in top 5?
+- **Explanation contract** — every card reason ≤ 90 chars, cites a constraint factor, no certainty language
+- **Guardrails** — disallowed intents return errors
+
+**Metrics reported:**
+- Constraint adherence rate (%)
+- Explanation quality rate (%)
+- Average latency by pipeline step (ms)
+- p95 total latency
+
+---
+
+## Analytics Events
+
+Lightweight client-side event tracking (console in dev, swap transport for production):
+
+| Event | Trigger | KPI |
+|---|---|---|
+| `search_submitted` | User types query or taps goal chip | Search volume, query distribution |
+| `refine_applied` | User taps a refine chip | Refine usage rate |
+| `offer_selected` | User taps a decision card | Search → plan review conversion |
+| `plan_modal_opened` | User taps "Review plan" | Time-to-first-decision |
+| `feedback_submitted` | User submits feedback (future) | Feedback rate, sentiment |
+
+---
+
+## Resilience / Circuit Breakers
+
+The retrieve node degrades gracefully:
+
+| Failure | Fallback | Trace label |
+|---|---|---|
+| Embedder fails | BM25 lexical search only | `bm25-only` |
+| BM25 also fails | Raw store offers (unfiltered) | `fallback-unfiltered` |
+| Reranker model fails | Deterministic keyword+similarity | `keyword+similarity` |
+
+In Portfolio mode, the debug trace shows which retrieval path was used.
+
+---
+
+## Trust & Guardrails
+
+| Rule | Enforced by |
+|---|---|
+| No certainty language ("you will be approved") | Eval harness + unit tests |
+| Card reason ≤ 90 chars, cites a constraint | Eval harness |
+| PII stripped (SSN, email, phone, card) | Ingress node |
+| Disallowed intents blocked (fraud, hack, etc.) | Ingress node + tests |
+| Constraint violators penalized in ranking | Rank node (0.5–0.6 penalty) |
+| "Final approval happens at checkout" reminder | Profile trust hub |
+| "We don't use social data" disclosure | Profile trust hub |

@@ -14,6 +14,7 @@ from app.pipeline.intent import intent_node
 from app.pipeline.retrieve import retrieve_node
 from app.pipeline.rerank import rerank_node
 from app.pipeline.rank import rank_node
+from app.pipeline.eligibility import eligibility_node
 from app.pipeline.summarize import summarize_node
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ def build_search_graph() -> StateGraph:
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("rerank", rerank_node)
     graph.add_node("rank", rank_node)
+    graph.add_node("eligibility", eligibility_node)
     graph.add_node("summarize", summarize_node)
 
     # Wire edges
@@ -73,7 +75,8 @@ def build_search_graph() -> StateGraph:
     graph.add_edge("router", "retrieve")
     graph.add_edge("retrieve", "rerank")
     graph.add_edge("rerank", "rank")
-    graph.add_edge("rank", "summarize")
+    graph.add_edge("rank", "eligibility")
+    graph.add_edge("eligibility", "summarize")
     graph.add_edge("summarize", END)
 
     return graph
@@ -81,6 +84,7 @@ def build_search_graph() -> StateGraph:
 
 # Compile once at module level
 _compiled_graph = None
+_graph_version = 0
 
 
 def get_search_graph():
@@ -91,10 +95,17 @@ def get_search_graph():
     return _compiled_graph
 
 
+def reset_graph():
+    """Reset compiled graph (for tests after pipeline changes)."""
+    global _compiled_graph
+    _compiled_graph = None
+
+
 async def run_search(
     query: str,
     user_id: str = "demo-user",
     refine: dict | None = None,
+    personalized: bool = True,
 ) -> SearchState:
     """Execute the full agentic search pipeline."""
     request_id = str(uuid.uuid4())[:8]
@@ -105,6 +116,7 @@ async def run_search(
         "sanitized_query": "",
         "request_id": request_id,
         "user_id": user_id,
+        "personalized": personalized,
         "parsed_constraints": {},
         "route": "",
         "candidates": [],
@@ -115,6 +127,9 @@ async def run_search(
         "monthly_impact": [],
         "disclaimers": [],
         "error": None,
+        "debug_trace": [],
+        "applied_constraints": {},
+        "why_this_recommendation": "",
     }
 
     # Apply refine overrides

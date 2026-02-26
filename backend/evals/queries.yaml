@@ -1,0 +1,168 @@
+# Search quality evaluation suite
+# Each query defines expected constraints, must-include results, must-exclude conditions,
+# and explanation quality rules.
+
+queries:
+  - id: "eval-001"
+    query: "laptop under $800"
+    expected_constraints:
+      category: "electronics"
+      max_price: 800
+    must_include_categories: ["electronics"]
+    must_exclude:
+      max_price: 800
+    top_k: 2  # only 2 electronics under $800 in dataset; 3rd is relaxed
+    notes: "Basic price-constrained electronics query (relaxed padding expected)"
+
+  - id: "eval-002"
+    query: "laptop under $800 with 0% APR"
+    expected_constraints:
+      category: "electronics"
+      max_price: 800
+      only_zero_apr: true
+    must_include_categories: ["electronics"]
+    must_exclude:
+      max_price: 800
+      only_zero_apr: true
+    top_k: 3
+    notes: "Multi-constraint: price + APR"
+
+  - id: "eval-003"
+    query: "macbook"
+    expected_constraints:
+      category: "electronics"
+    must_include_merchants: ["Best Buy", "Apple"]
+    must_include_product_substring: "MacBook"
+    top_k: 3
+    notes: "Brand-specific query — tests BM25 lexical retrieval"
+
+  - id: "eval-004"
+    query: "travel vacation under $1000"
+    expected_constraints:
+      category: "travel"
+      max_price: 1000
+    must_include_categories: ["travel"]
+    must_exclude:
+      max_price: 1000
+    top_k: 3
+    notes: "Travel + budget constraint"
+
+  - id: "eval-005"
+    query: "stay under $50/mo"
+    expected_constraints:
+      max_monthly: 50
+    must_exclude:
+      max_monthly: 50
+    top_k: 2  # very few items under $50/mo in dataset; 3rd is relaxed
+    notes: "Monthly payment cap, no category (relaxed padding expected)"
+
+  - id: "eval-006"
+    query: "only 0% apr"
+    expected_constraints:
+      only_zero_apr: true
+    must_exclude:
+      only_zero_apr: true
+    top_k: 5
+    notes: "APR-only constraint"
+
+  - id: "eval-007"
+    query: "peloton bike"
+    expected_constraints:
+      category: "fitness"
+    must_include_merchants: ["Peloton"]
+    must_include_product_substring: "Bike"
+    top_k: 3
+    notes: "Exact brand match — BM25 should catch this"
+
+  - id: "eval-008"
+    query: "ps5 gaming"
+    expected_constraints:
+      category: "gaming"
+    must_include_product_substring: "PS5"
+    top_k: 3
+    notes: "Gaming category + brand"
+
+  - id: "eval-009"
+    query: "sneakers under $200 0% apr"
+    expected_constraints:
+      category: "sneakers"
+      max_price: 200
+      only_zero_apr: true
+    must_include_categories: ["sneakers"]
+    must_exclude:
+      max_price: 200
+      only_zero_apr: true
+    top_k: 3
+    notes: "Three constraints: category + price + APR"
+
+  - id: "eval-010"
+    query: "home furniture sofa"
+    expected_constraints:
+      category: "home"
+    must_include_categories: ["home"]
+    top_k: 3
+    notes: "Category detection from multiple keywords"
+
+  - id: "eval-011"
+    query: "cheap electronics"
+    expected_constraints:
+      category: "electronics"
+    must_include_categories: ["electronics"]
+    top_k: 5
+    notes: "Vague budget intent, should still detect category"
+
+  - id: "eval-012"
+    query: "nike air max"
+    expected_constraints:
+      category: "sneakers"
+    must_include_merchants: ["Nike"]
+    must_include_product_substring: "Air Max"
+    top_k: 3
+    notes: "Brand + product name — BM25 critical path"
+
+  - id: "eval-013"
+    query: "garmin watch fitness"
+    expected_constraints:
+      category: "fitness"
+    must_include_product_substring: "Garmin"
+    top_k: 3
+    notes: "Brand + category"
+
+  - id: "eval-014"
+    query: "hack credit score"
+    expected_error: true
+    notes: "Guardrail: must reject disallowed intent"
+
+  - id: "eval-015"
+    query: "coffee machine under $700"
+    expected_constraints:
+      category: "appliances"
+      max_price: 700
+    must_include_categories: ["appliances"]
+    top_k: 3
+    notes: "Appliance category detection"
+
+# Explanation quality rules (checked on every non-error result)
+explanation_rules:
+  max_reason_length: 90
+  max_why_recommendation_length: 120
+  banned_phrases:
+    - "you will be approved"
+    - "guaranteed approval"
+    - "you are approved"
+    - "based on your personal spending history"
+    - "we guarantee"
+  must_cite_one_of:
+    - "budget"
+    - "0% APR"
+    - "/mo"
+    - "eligibility"
+    - "confidence"
+    - "cost"
+    - "payment"
+    - "profile"
+    - "criteria"
+    - "target"
+    - "history"
+    - "apr"
+    - "interest"

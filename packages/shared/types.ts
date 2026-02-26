@@ -39,6 +39,12 @@ export interface SearchRequest {
   };
 }
 
+export interface TraceStep {
+  step: string;
+  ms: number;
+  notes: string;
+}
+
 export interface SearchResponse {
   query: string;
   aiSummary: string;
@@ -46,6 +52,9 @@ export interface SearchResponse {
   refineChips: RefineChip[];
   monthlyImpact: MonthlyImpactBar[];
   disclaimers: string[];
+  appliedConstraints: Record<string, string | boolean>;
+  whyThisRecommendation: string;
+  debugTrace?: TraceStep[];
 }
 
 export interface SearchFeedback {

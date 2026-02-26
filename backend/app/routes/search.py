@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from fastapi import APIRouter, HTTPException
 
@@ -12,12 +13,15 @@ from app.schemas import (
     DecisionItemResponse,
     RefineChipResponse,
     MonthlyImpactResponse,
+    TraceStep,
     FeedbackRequest,
     FeedbackResponse,
     SuggestionsResponse,
 )
 from app.pipeline.orchestrator import run_search
 from app.store import get_store
+
+_DEV_MODE = os.getenv("DEBUG", "true").lower() == "true"
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +35,9 @@ async def search_query(req: SearchQueryRequest):
 
     result = await run_search(
         query=req.query,
-        user_id=req.userId,
+        user_id=req.user_id,
         refine=refine_dict,
+        personalized=req.personalized,
     )
 
     if result.get("error"):
@@ -67,6 +72,14 @@ async def search_query(req: SearchQueryRequest):
         for m in result.get("monthly_impact", [])
     ]
 
+    # Agentic trace (dev only)
+    debug_trace = None
+    if _DEV_MODE:
+        debug_trace = [
+            TraceStep(step=t["step"], ms=t["ms"], notes=t["notes"])
+            for t in result.get("debug_trace", [])
+        ]
+
     return SearchQueryResponse(
         query=req.query,
         aiSummary=result.get("ai_summary", ""),
@@ -74,6 +87,9 @@ async def search_query(req: SearchQueryRequest):
         refineChips=refine_chips,
         monthlyImpact=monthly_impact,
         disclaimers=result.get("disclaimers", []),
+        appliedConstraints=result.get("applied_constraints", {}),
+        whyThisRecommendation=result.get("why_this_recommendation", ""),
+        debugTrace=debug_trace,
     )
 
 
@@ -102,10 +118,10 @@ async def search_feedback(req: FeedbackRequest):
     """Store thumbs up/down feedback."""
     store = get_store()
     store.add_feedback({
-        "itemId": req.itemId,
+        "itemId": req.item_id,
         "query": req.query,
         "rating": req.rating,
         "reason": req.reason,
     })
-    logger.info("feedback.stored", extra={"item_id": req.itemId, "rating": req.rating})
+    logger.info("feedback.stored", extra={"item_id": req.item_id, "rating": req.rating})
     return FeedbackResponse(status="ok")

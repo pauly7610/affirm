@@ -11,7 +11,7 @@ interface SearchState {
 }
 
 interface SearchContextValue extends SearchState {
-  runSearch: (query: string, refine?: Record<string, unknown>) => Promise<void>;
+  runSearch: (query: string, refine?: Record<string, unknown>, personalized?: boolean) => Promise<void>;
   setQuery: (q: string) => void;
   toggleRefine: (key: string) => void;
   clearResults: () => void;
@@ -28,11 +28,12 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     activeRefines: {},
   });
 
-  const runSearch = useCallback(async (q: string, refine?: Record<string, unknown>) => {
+  const runSearch = useCallback(async (q: string, refine?: Record<string, unknown>, personalized?: boolean) => {
     setState(prev => ({ ...prev, query: q, loading: true, error: null }));
     try {
       const res = await searchQuery({
         query: q,
+        personalized: personalized ?? true,
         refine: refine as SearchState['activeRefines'] & {
           onlyZeroApr?: boolean;
           maxMonthly?: number;

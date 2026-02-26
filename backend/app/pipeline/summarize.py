@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from app.pipeline.state import SearchState
 
@@ -68,7 +69,8 @@ def _build_item_reason(offer: dict, rank_idx: int, constraints: dict) -> str:
     if not reasons:
         reasons.append("Matches your search criteria.")
 
-    return " ".join(reasons[:2])
+    text = " ".join(reasons[:2])
+    return text[:90]
 
 
 def _build_monthly_impact(ranked: list[dict]) -> list[dict]:
@@ -79,8 +81,28 @@ def _build_monthly_impact(ranked: list[dict]) -> list[dict]:
     ]
 
 
+def _build_why_recommendation(constraints: dict, ranked: list[dict]) -> str:
+    """Single sentence citing constraints that drove the top pick."""
+    if not ranked:
+        return "No results matched your criteria."
+    top = ranked[0]
+    parts = []
+    if constraints.get("max_price") is not None:
+        parts.append(f"under ${constraints['max_price']:.0f}")
+    if constraints.get("max_monthly") is not None:
+        parts.append(f"under ${constraints['max_monthly']:.0f}/mo")
+    if constraints.get("only_zero_apr"):
+        parts.append("0% APR")
+    if constraints.get("category"):
+        parts.append(constraints["category"])
+    parts.append(f"{top['eligibilityConfidence']} confidence")
+    text = f"{top['productName']}: {', '.join(parts)}."
+    return text[:120]
+
+
 def summarize_node(state: SearchState) -> dict:
     """Generate all output artifacts from ranked results."""
+    t0 = time.perf_counter()
     request_id = state.get("request_id", "unknown")
     ranked = state.get("ranked", [])
     constraints = state.get("parsed_constraints", {})
@@ -96,6 +118,9 @@ def summarize_node(state: SearchState) -> dict:
     # Monthly impact visualization data
     monthly_impact = _build_monthly_impact(ranked)
 
+    # Why this recommendation — single sentence citing constraints
+    why = _build_why_recommendation(constraints, ranked)
+
     disclaimers = [
         "Estimates shown. Terms may vary at checkout.",
         "Checking eligibility won't affect your credit score.",
@@ -103,10 +128,16 @@ def summarize_node(state: SearchState) -> dict:
 
     logger.info("summarize.done", extra={"request_id": request_id, "summary_len": len(ai_summary)})
 
+    elapsed = round((time.perf_counter() - t0) * 1000, 1)
+    trace = list(state.get("debug_trace", []))
+    trace.append({"step": "summarize", "ms": elapsed, "notes": f"summary={len(ai_summary)} chars, reasons={len(ranked)} items"})
+
     return {
         "ranked": ranked,
         "ai_summary": ai_summary,
         "refine_chips": REFINE_CHIPS,
         "monthly_impact": monthly_impact,
         "disclaimers": disclaimers,
+        "why_this_recommendation": why,
+        "debug_trace": trace,
     }
