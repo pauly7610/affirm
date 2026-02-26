@@ -30,6 +30,9 @@ class SearchState(TypedDict, total=False):
     # Privacy / personalization
     personalized: bool
 
+    # User profile context (loaded from store)
+    user_profile: dict
+
     # Pipeline stages
     parsed_constraints: ParsedConstraints
     route: str  # "simple" | "complex"

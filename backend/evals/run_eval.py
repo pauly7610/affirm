@@ -12,12 +12,19 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import io
 import sys
 import time
 import os
 from pathlib import Path
 
 import yaml
+
+# Force UTF-8 output on Windows to avoid cp1252 encoding errors with Unicode symbols
+if sys.stdout.encoding != "utf-8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if sys.stderr.encoding != "utf-8":
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # Ensure backend root is on path
 _backend_root = str(Path(__file__).resolve().parent.parent)

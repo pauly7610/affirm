@@ -26,6 +26,7 @@ class DecisionItem(BaseModel):
     monthly_payment: float = Field(alias="monthlyPayment")
     eligibility_confidence: EligibilityConfidence = Field(alias="eligibilityConfidence")
     reason: str
+    safety_signals: list[str] = Field(default_factory=list, alias="safetySignals")
     disclosure: str
 
     model_config = {"populate_by_name": True}

@@ -228,6 +228,26 @@ make eval
 - Average latency by pipeline step (ms)
 - p95 total latency
 
+**Sample output:**
+```
+  Results: 15/15 queries passed
+  Checks: 451/451 passed
+
+  Constraint adherence: 100% (29/29)
+  Explanation quality:  100% (392/392)
+
+  Avg latency by step:
+    ingress         0.2ms  (n=14)
+    intent          0.1ms  (n=14)
+    retrieve        1.9ms  (n=14)
+    rerank          0.2ms  (n=14)
+    rank            0.0ms  (n=14)
+    summarize       0.1ms  (n=14)
+    total          25.0ms avg, 162.4ms p95
+```
+
+The 451 checks break down as: 29 constraint adherence checks (price/monthly/APR/category per query) + 392 explanation quality checks (reason length, banned phrases, citation requirements across all result items) + 30 relevance checks (category presence, merchant matching).
+
 ---
 
 ## Analytics Events

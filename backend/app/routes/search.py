@@ -57,6 +57,7 @@ async def search_query(req: SearchQueryRequest):
             monthlyPayment=o["monthlyPayment"],
             eligibilityConfidence=o["eligibilityConfidence"],
             reason=o.get("reason", ""),
+            safetySignals=o.get("safetySignals", []),
             disclosure=o.get("disclosure", "Final approval happens at checkout."),
         )
         for o in ranked

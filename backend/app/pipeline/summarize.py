@@ -49,28 +49,77 @@ def _build_summary(constraints: dict, ranked: list[dict]) -> str:
     return " ".join(parts)
 
 
-def _build_item_reason(offer: dict, rank_idx: int, constraints: dict) -> str:
-    """Per-item 'why you're seeing this' explanation."""
-    reasons = []
+def _build_item_reason(offer: dict, rank_idx: int, constraints: dict, profile: dict) -> str:
+    """Per-item reason — tight product microcopy, 1 sentence, ≤90 chars."""
+    monthly = offer["monthlyPayment"]
+    existing = profile.get("existing_monthly", 0)
+    spending_power = profile.get("spendingPower", 3000)
+    apr = offer["apr"]
 
-    if rank_idx == 0:
-        reasons.append("Recommended based on your spending profile.")
-    elif offer["apr"] == 0:
-        reasons.append("0% APR keeps your total cost low.")
-    elif offer["eligibilityConfidence"] == "high":
-        reasons.append("High eligibility based on your payment history.")
+    # Comfort range + APR combo (most informative single sentence)
+    if existing > 0:
+        lo = max(30, round(existing / max(profile.get("plan_count", 1), 1) * 0.5, -1))
+        hi = round(existing / max(profile.get("plan_count", 1), 1) * 1.2, -1)
+        if lo <= monthly <= hi:
+            if apr == 0:
+                return f"Fits your usual ${lo:.0f}\u2013${hi:.0f}/mo range, 0% APR keeps cost flat."[:90]
+            return f"Fits your usual ${lo:.0f}\u2013${hi:.0f}/mo range and stays within spending power."[:90]
 
-    if constraints.get("max_monthly") and offer["monthlyPayment"] <= constraints["max_monthly"]:
-        reasons.append(f"Fits your ${constraints['max_monthly']:.0f}/mo target.")
+    # 0% APR + budget
+    if apr == 0 and constraints.get("max_monthly") and monthly <= constraints["max_monthly"]:
+        return f"0% APR keeps cost flat, under your ${constraints['max_monthly']:.0f}/mo target."[:90]
 
-    if offer["eligibilityConfidence"] == "high" and rank_idx > 0:
-        reasons.append("Strong approval likelihood.")
+    # 0% APR standalone
+    if apr == 0:
+        if spending_power and offer["totalPrice"] <= spending_power:
+            return "0% APR keeps cost flat and stays within your spending power."[:90]
+        return "0% APR keeps total cost down with no interest charges."[:90]
 
-    if not reasons:
-        reasons.append("Matches your search criteria.")
+    # Budget fit
+    if constraints.get("max_monthly") and monthly <= constraints["max_monthly"]:
+        return f"Under your ${constraints['max_monthly']:.0f}/mo target with {apr}% APR."[:90]
 
-    text = " ".join(reasons[:2])
-    return text[:90]
+    # Spending power fit
+    if spending_power and offer["totalPrice"] <= spending_power:
+        return f"Stays within your spending power at ${monthly:.0f}/mo."[:90]
+
+    return "Matches your search criteria."[:90]
+
+
+def _build_safety_signals(offer: dict, profile: dict) -> list[str]:
+    """Per-item context signals — explains what the UI already shows, no new claims."""
+    signals = []
+    existing = profile.get("existing_monthly", 0)
+    spending_power = profile.get("spendingPower", 3000)
+    monthly = offer["monthlyPayment"]
+
+    # Deterministic facts first (green-worthy)
+    if offer["apr"] == 0:
+        signals.append("0% APR keeps total cost down")
+
+    # Obligations stability
+    new_total = existing + monthly
+    if existing > 0 and (new_total < existing * 1.35):
+        signals.append("Keeps monthly obligations steady")
+
+    # Spending power
+    if spending_power and offer["totalPrice"] <= spending_power:
+        signals.append("Stays within your spending power")
+
+    # Eligibility estimate (always framed as estimate)
+    if offer["eligibilityConfidence"] == "high":
+        signals.append("Estimate: higher approval odds for this amount")
+    elif offer["eligibilityConfidence"] == "med":
+        signals.append("Estimate: moderate approval odds for this amount")
+
+    # Comfort range
+    if existing > 0:
+        lo = max(30, round(existing / max(profile.get("plan_count", 1), 1) * 0.5, -1))
+        hi = round(existing / max(profile.get("plan_count", 1), 1) * 1.2, -1)
+        if lo <= monthly <= hi:
+            signals.append("Fits your usual monthly range")
+
+    return signals[:2]
 
 
 def _build_monthly_impact(ranked: list[dict]) -> list[dict]:
@@ -106,14 +155,16 @@ def summarize_node(state: SearchState) -> dict:
     request_id = state.get("request_id", "unknown")
     ranked = state.get("ranked", [])
     constraints = state.get("parsed_constraints", {})
+    profile = state.get("user_profile", {})
     logger.info("summarize.start", extra={"request_id": request_id})
 
     # Build AI summary
     ai_summary = _build_summary(constraints, ranked)
 
-    # Add per-item reasons
+    # Add per-item reasons + safety signals
     for i, o in enumerate(ranked):
-        o["reason"] = _build_item_reason(o, i, constraints)
+        o["reason"] = _build_item_reason(o, i, constraints, profile)
+        o["safetySignals"] = _build_safety_signals(o, profile)
 
     # Monthly impact visualization data
     monthly_impact = _build_monthly_impact(ranked)

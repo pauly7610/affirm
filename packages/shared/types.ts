@@ -14,6 +14,7 @@ export interface DecisionItem {
   monthlyPayment: number;
   eligibilityConfidence: EligibilityConfidence;
   reason: string;
+  safetySignals: string[];
   disclosure: string;
 }
 

@@ -1,5 +1,5 @@
 export const colors = {
-  primary: '#2F6FED',
+  primary: '#3168E3',
   primaryLight: '#EEF2FF',
 
   bg: '#F6F7FB',
@@ -19,6 +19,7 @@ export const colors = {
   barDefault: '#D1D5DB',
   skeleton: '#E5E7EB',
   merchantBg: '#F3F4F6',
+  safeGreen: '#16a34a',
 } as const;
 
 export const radii = {
@@ -34,8 +35,8 @@ export const shadows = {
   soft: {
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 } as const,
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
     elevation: 1,
   },
   medium: {

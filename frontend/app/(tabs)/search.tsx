@@ -69,6 +69,7 @@ export default function SearchScreen() {
   const summaryAnim = useRef(new Animated.Value(0)).current;
   const recommendedAnim = useRef(new Animated.Value(0)).current;
   const alternatesAnim = useRef(new Animated.Value(0)).current;
+  const eligibilityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     setInputValue(query);
@@ -80,8 +81,10 @@ export default function SearchScreen() {
       summaryAnim.setValue(0);
       recommendedAnim.setValue(0);
       alternatesAnim.setValue(0);
+      eligibilityAnim.setValue(0);
       Animated.stagger(120, [
         Animated.timing(summaryAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(eligibilityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.timing(recommendedAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.timing(alternatesAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
@@ -223,6 +226,16 @@ export default function SearchScreen() {
                   );
                 })()}
               </Animated.View>
+
+              {/* Living eligibility banner — only when refine filters are active */}
+              {Object.values(localRefines).some(Boolean) && (
+                <Animated.View style={{ opacity: eligibilityAnim, transform: [{ translateY: eligibilityAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
+                  <View style={styles.eligibilityBanner}>
+                    <View style={styles.eligibilityDot} />
+                    <Text style={styles.eligibilityText}>Eligibility estimate refreshed</Text>
+                  </View>
+                </Animated.View>
+              )}
 
               {/* Recommended card */}
               <Animated.View style={{ opacity: recommendedAnim, transform: [{ translateY: recommendedAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
@@ -448,4 +461,23 @@ const styles = StyleSheet.create({
   traceTotalMs: { fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 6 },
   agentVersionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
   agentVersionText: { fontSize: 10, color: colors.textTertiary },
+  eligibilityBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  eligibilityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.safeGreen,
+  },
+  eligibilityText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
 });

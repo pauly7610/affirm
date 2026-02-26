@@ -57,6 +57,7 @@ export default function ProfileScreen() {
     monthlyPayment: plan.monthlyPayment,
     eligibilityConfidence: 'high',
     reason: `${((plan.totalPaid / plan.totalAmount) * 100).toFixed(0)}% paid. On track.`,
+    safetySignals: [],
     disclosure: 'Plan details reflect current balance.',
   });
 

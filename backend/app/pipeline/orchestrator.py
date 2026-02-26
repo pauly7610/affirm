@@ -16,6 +16,7 @@ from app.pipeline.rerank import rerank_node
 from app.pipeline.rank import rank_node
 from app.pipeline.eligibility import eligibility_node
 from app.pipeline.summarize import summarize_node
+from app.store import get_store
 
 logger = logging.getLogger(__name__)
 
@@ -111,12 +112,20 @@ async def run_search(
     request_id = str(uuid.uuid4())[:8]
     logger.info("pipeline.start", extra={"request_id": request_id, "query": query[:100]})
 
+    store = get_store()
+    user_profile = {
+        **store.user,
+        "existing_monthly": sum(p["monthlyPayment"] for p in store.plans),
+        "plan_count": len(store.plans),
+    }
+
     initial_state: SearchState = {
         "query": query,
         "sanitized_query": "",
         "request_id": request_id,
         "user_id": user_id,
         "personalized": personalized,
+        "user_profile": user_profile,
         "parsed_constraints": {},
         "route": "",
         "candidates": [],

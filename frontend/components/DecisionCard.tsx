@@ -68,6 +68,22 @@ export function DecisionCard({ item, isRecommended, whyRecommended, onPress, onR
         </View>
       </View>
 
+      {item.safetySignals && item.safetySignals.length > 0 && (
+        <View style={styles.safetyBlock}>
+          {item.safetySignals.slice(0, 2).map((signal, i) => {
+            const isDeterministic = signal.startsWith('0% APR');
+            return (
+              <View key={i} style={styles.safetyRow}>
+                <Text style={isDeterministic ? styles.safetyCheckGreen : styles.safetyDot}>
+                  {isDeterministic ? '\u2713' : '\u00B7'}
+                </Text>
+                <Text style={styles.safetyText}>{signal}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       {isRecommended && whyRecommended ? (
         <Text style={styles.whyRecommended} numberOfLines={1}>{whyRecommended}</Text>
       ) : null}
@@ -90,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     padding: 20,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.soft,
@@ -107,12 +123,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.bgMuted,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radii.badge,
     marginBottom: 12,
     gap: 6,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   badgeDot: {
     width: 6,
@@ -123,7 +141,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '500',
-    color: colors.primary,
+    color: colors.textSecondary,
     letterSpacing: 0.2,
   },
   header: {
@@ -232,6 +250,38 @@ const styles = StyleSheet.create({
   },
   ctaTextOutline: {
     color: colors.textSecondary,
+  },
+  safetyBlock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    marginBottom: 14,
+    gap: 5,
+  },
+  safetyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  safetyCheckGreen: {
+    fontSize: 13,
+    color: colors.safeGreen,
+    fontWeight: '700',
+    width: 14,
+    textAlign: 'center',
+  },
+  safetyDot: {
+    fontSize: 18,
+    color: colors.textTertiary,
+    fontWeight: '400',
+    width: 14,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  safetyText: {
+    fontSize: 12,
+    color: colors.textMeta,
+    lineHeight: 16,
   },
   disclosure: {
     fontSize: 11,
