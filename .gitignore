@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+__pycache__/
+*.pyc
+.env
+.env.local
+*.egg-info/
+.pytest_cache/
+pgdata/

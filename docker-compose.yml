@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: ankane/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: affirm
+      POSTGRES_PASSWORD: affirm_dev
+      POSTGRES_DB: affirm_discovery
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U affirm"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

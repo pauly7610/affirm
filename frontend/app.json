@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Affirm Agentic Discovery",
+    "slug": "affirm-agentic-discovery",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "affirm-discovery",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F8FAFB"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.affirm.agenticdiscovery"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F8FAFB"
+      },
+      "package": "com.affirm.agenticdiscovery"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

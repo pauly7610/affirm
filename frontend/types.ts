@@ -1,0 +1,100 @@
+export type EligibilityConfidence = "high" | "med" | "low";
+
+export interface DecisionItem {
+  id: string;
+  merchantName: string;
+  productName: string;
+  category: string;
+  imageUrl: string | null;
+  totalPrice: number;
+  termMonths: number;
+  apr: number;
+  monthlyPayment: number;
+  eligibilityConfidence: EligibilityConfidence;
+  reason: string;
+  disclosure: string;
+}
+
+export interface RefineChip {
+  key: string;
+  label: string;
+}
+
+export interface MonthlyImpactBar {
+  label: string;
+  value: number;
+}
+
+export interface SearchRequest {
+  query: string;
+  userId?: string;
+  sessionId?: string;
+  refine?: {
+    onlyZeroApr?: boolean;
+    maxMonthly?: number;
+    sort?: "lowest_monthly" | "lowest_total" | "shortest_term";
+    category?: string;
+  };
+}
+
+export interface SearchResponse {
+  query: string;
+  aiSummary: string;
+  results: DecisionItem[];
+  refineChips: RefineChip[];
+  monthlyImpact: MonthlyImpactBar[];
+  disclaimers: string[];
+}
+
+export interface SearchFeedback {
+  itemId: string;
+  query: string;
+  rating: "up" | "down";
+  reason?: string;
+}
+
+export interface SuggestionsResponse {
+  prompts: string[];
+  trending: string[];
+}
+
+export interface ActivePlan {
+  id: string;
+  merchantName: string;
+  productName: string;
+  remainingBalance: number;
+  monthlyPayment: number;
+  nextPaymentDate: string;
+  totalPaid: number;
+  totalAmount: number;
+  termMonths: number;
+  apr: number;
+}
+
+export interface Insight {
+  id: string;
+  text: string;
+  type: "saving" | "behavior" | "projection";
+  sparklineData?: number[];
+}
+
+export interface EligibilityPreview {
+  spendingPower: number;
+  explanation: string;
+  lastRefreshed: string;
+}
+
+export interface UserProfile {
+  name: string;
+  spendingPower: number;
+  activePlansCount: number;
+  paymentStatus: "excellent" | "good" | "fair";
+  accountHealth: "strong" | "good" | "needs_attention";
+}
+
+export interface ProfileSummary {
+  user: UserProfile;
+  eligibility: EligibilityPreview;
+  plans: ActivePlan[];
+  insights: Insight[];
+}
