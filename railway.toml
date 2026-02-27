@@ -3,11 +3,7 @@ builder = "nixpacks"
 watchPatterns = ["backend/**", "packages/**"]
 
 [build.nixpacks]
-providers = ["python"]
-aptPkgs = []
-installCmd = "cd backend && pip install -r requirements.txt"
-buildCmd = "echo 'build complete'"
-startCmd = "cd backend && PYTHONPATH=/app/backend:/app/packages uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+nixpacksConfigPath = "nixpacks.toml"
 
 [deploy]
 startCommand = "cd backend && PYTHONPATH=/app/backend:/app/packages uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
