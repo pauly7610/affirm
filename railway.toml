@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-watchPatterns = ["backend/**", "packages/**"]
+watchPatterns = ["backend/**", "packages/**", "*.toml"]
 
 [build.nixpacks]
 nixpacksConfigPath = "nixpacks.toml"
